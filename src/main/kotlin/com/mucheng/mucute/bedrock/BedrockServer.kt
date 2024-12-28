@@ -11,6 +11,7 @@ open class BedrockServer(val socketAddress: InetSocketAddress) {
 
     private val packetHandlers = ArrayList<BedrockPacketHandler>()
 
+    @OptIn(ExperimentalStdlibApi::class)
     suspend fun listen() {
         val socket = aSocket(SelectorManager(Dispatchers.IO))
             .udp()
@@ -20,6 +21,11 @@ open class BedrockServer(val socketAddress: InetSocketAddress) {
             val datagram = socket.receive()
             val source = datagram.packet
             val address = datagram.address
+
+            source.copy().use {
+                println("Received ID: 0x${it.readByte().toHexString()}")
+            }
+
             for (packetHandler in packetHandlers) {
                 val copiedSource = source.copy()
                 val isSuccess = runCatching {
