@@ -1,16 +1,18 @@
 package com.mucheng.mucute.bedrock.packet.client
 
-import com.mucheng.mucute.bedrock.packet.BedrockPacket
-import com.mucheng.mucute.bedrock.packet.Deserializer
+import com.mucheng.mucute.bedrock.packet.RakNetPacket
+import com.mucheng.mucute.bedrock.serialization.RakNetDeserializer
 import com.mucheng.mucute.bedrock.util.checkMagic
 import com.mucheng.mucute.bedrock.util.checkPacketId
 import com.mucheng.mucute.bedrock.util.writeMagic
 import io.ktor.utils.io.core.*
 import kotlinx.io.Source
 
-data class UnconnectedPingPacket(val time: Long, val clientGUID: Long) : BedrockPacket(UNCONNECTED_PING) {
+data class UnconnectedPingPacket(val time: Long, val clientGUID: Long) : RakNetPacket() {
 
-    companion object : Deserializer<UnconnectedPingPacket> {
+    override val packetId = UNCONNECTED_PING
+
+    companion object Deserializer : RakNetDeserializer<UnconnectedPingPacket> {
 
         override fun fromSource(source: Source) = with(source) {
             checkPacketId(UNCONNECTED_PING)

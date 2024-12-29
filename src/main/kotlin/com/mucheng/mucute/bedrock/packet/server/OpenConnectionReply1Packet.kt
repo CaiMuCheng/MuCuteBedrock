@@ -1,7 +1,7 @@
 package com.mucheng.mucute.bedrock.packet.server
 
-import com.mucheng.mucute.bedrock.packet.BedrockPacket
-import com.mucheng.mucute.bedrock.packet.Deserializer
+import com.mucheng.mucute.bedrock.packet.RakNetPacket
+import com.mucheng.mucute.bedrock.serialization.RakNetDeserializer
 import com.mucheng.mucute.bedrock.util.*
 import io.ktor.utils.io.core.*
 import kotlinx.io.Source
@@ -12,9 +12,11 @@ data class OpenConnectionReply1Packet(
     val useSecurity: Boolean,
     val cookie: Int?,
     val MTU: Int
-) : BedrockPacket(OPEN_CONNECTION_REPLY_1) {
+) : RakNetPacket() {
 
-    companion object : Deserializer<OpenConnectionReply1Packet> {
+    override val packetId = OPEN_CONNECTION_REPLY_1
+
+    companion object Deserializer : RakNetDeserializer<OpenConnectionReply1Packet> {
 
         @Suppress("LocalVariableName")
         override fun fromSource(source: Source) = with(source) {
@@ -40,7 +42,7 @@ data class OpenConnectionReply1Packet(
         if (useSecurity) {
             writeInt(cookie ?: 0)
         }
-        writeShort((MTU + 46).toShort())
+        writeShort(MTU.toShort())
     }
 
 }

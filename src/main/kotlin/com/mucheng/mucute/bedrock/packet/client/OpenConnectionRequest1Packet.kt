@@ -1,7 +1,7 @@
 package com.mucheng.mucute.bedrock.packet.client
 
-import com.mucheng.mucute.bedrock.packet.BedrockPacket
-import com.mucheng.mucute.bedrock.packet.Deserializer
+import com.mucheng.mucute.bedrock.packet.RakNetPacket
+import com.mucheng.mucute.bedrock.serialization.RakNetDeserializer
 import com.mucheng.mucute.bedrock.util.*
 import io.ktor.utils.io.core.*
 import kotlinx.io.Source
@@ -10,16 +10,18 @@ import kotlinx.io.Source
 data class OpenConnectionRequest1Packet(
     val rakNetProtocolVersion: Int,
     val MTU: Int
-) : BedrockPacket(OPEN_CONNECTION_REQUEST_1) {
+) : RakNetPacket() {
 
-    companion object : Deserializer<OpenConnectionRequest1Packet> {
+    override val packetId = OPEN_CONNECTION_REQUEST_1
+
+    companion object Deserializer : RakNetDeserializer<OpenConnectionRequest1Packet> {
 
         @Suppress("LocalVariableName")
         override fun fromSource(source: Source) = with(source) {
             checkPacketId(OPEN_CONNECTION_REQUEST_1)
             checkMagic()
             val protocolVersion = readByte().toInt()
-            val MTU = readMTU() - 46
+            val MTU = readMTU()
             OpenConnectionRequest1Packet(protocolVersion, MTU)
         }
 
@@ -29,7 +31,7 @@ data class OpenConnectionRequest1Packet(
         writePacketId()
         writeMagic()
         writeByte(rakNetProtocolVersion.toByte())
-        writeMTU(MTU + 46)
+        writeMTU(MTU)
     }
 
 }

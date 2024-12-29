@@ -1,5 +1,7 @@
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
+
 plugins {
-    kotlin("jvm") version "2.0.21"
+    kotlin("jvm") version "2.1.0"
 }
 
 group = "com.mucheng.mucute.bedrock"
@@ -20,4 +22,7 @@ tasks.test {
 
 kotlin {
     jvmToolchain(17)
+    compilerOptions {
+        freeCompilerArgs.addAll(listOf("-Xnon-local-break-continue"))
+    }
 }

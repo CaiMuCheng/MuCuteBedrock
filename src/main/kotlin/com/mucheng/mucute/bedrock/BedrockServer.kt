@@ -1,54 +1,90 @@
 package com.mucheng.mucute.bedrock
 
-import com.mucheng.mucute.bedrock.packet.BedrockPacketHandler
+import com.mucheng.mucute.bedrock.serialization.RakNetDeserializer
+import com.mucheng.mucute.bedrock.packet.RakNetPacket
+import com.mucheng.mucute.bedrock.handler.RakNetPacketHandler
+import com.mucheng.mucute.bedrock.handler.DefaultServerRakNetPacketHandler
 import io.ktor.network.selector.*
 import io.ktor.network.sockets.*
+import io.ktor.util.network.address
+import io.ktor.util.network.port
 import io.ktor.utils.io.core.*
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.io.readByteArray
 
 @Suppress("MemberVisibilityCanBePrivate")
-open class BedrockServer(val socketAddress: InetSocketAddress) {
+open class BedrockServer(val options: BedrockServerOptions) {
 
-    private val packetHandlers = ArrayList<BedrockPacketHandler>()
+    private val rakNetDeserializers = ArrayList<RakNetDeserializer<out RakNetPacket>>()
+
+    private var rakNetPacketHandler: RakNetPacketHandler = DefaultServerRakNetPacketHandler(options)
 
     @OptIn(ExperimentalStdlibApi::class)
     suspend fun listen() {
         val socket = aSocket(SelectorManager(Dispatchers.IO))
             .udp()
-            .bind(socketAddress)
+            .bind(options.address)
 
         while (true) {
             val datagram = socket.receive()
-            val source = datagram.packet
-            val address = datagram.address
-
-            source.copy().use {
-                println("Received ID: 0x${it.readByte().toHexString()}")
+            val address = datagram.address.let {
+                val javaAddress = it.toJavaAddress()
+                InetSocketAddress(javaAddress.address, javaAddress.port)
             }
+            datagram.packet.use { source ->
+                for (deserializer in rakNetDeserializers) {
+                    source.copy().use { copiedSource ->
+                        var rakNetPacket: RakNetPacket? = null
 
-            for (packetHandler in packetHandlers) {
-                val copiedSource = source.copy()
-                val isSuccess = runCatching {
-                    packetHandler.handle(socket, copiedSource, address)
-                }.isSuccess
+                        try {
+                            rakNetPacket = deserializer.fromSource(copiedSource)
+                        } catch (e: Throwable) {
+                            if (e is CancellationException) throw e
+                        }
 
-                copiedSource.close()
+                        copiedSource.close()
 
-                if (isSuccess) {
-                    break
+                        rakNetPacket?.let { packet ->
+                            try {
+                                rakNetPacketHandler.handle(socket, packet, address)
+                            } catch (e: Throwable) {
+                                if (e is CancellationException) throw e
+                            }
+                            break
+                        } ?: continue
+                    }
                 }
             }
-            source.close()
         }
     }
 
-    fun addPacketHandler(bedrockPacketHandler: BedrockPacketHandler): BedrockServer {
-        packetHandlers.add(bedrockPacketHandler)
+    fun setRakNetPacketHandler(rakNetPacketHandler: RakNetPacketHandler): BedrockServer {
+        this.rakNetPacketHandler = rakNetPacketHandler
         return this
     }
 
-    fun removePacketHandler(bedrockPacketHandler: BedrockPacketHandler): BedrockServer {
-        packetHandlers.remove(bedrockPacketHandler)
+    fun getRakNetPacketHandler(): RakNetPacketHandler {
+        return rakNetPacketHandler
+    }
+
+    fun addDeserializer(rakNetDeserializer: RakNetDeserializer<out RakNetPacket>): BedrockServer {
+        rakNetDeserializers.add(rakNetDeserializer)
+        return this
+    }
+
+    fun replaceDeserializer(rakNetDeserializer: RakNetDeserializer<out RakNetPacket>) {
+        val index = rakNetDeserializers.indexOf(rakNetDeserializer).takeIf { it >= 0 } ?: return
+        rakNetDeserializers.removeAt(index)
+        if (index == rakNetDeserializers.size) {
+            rakNetDeserializers.add(rakNetDeserializer)
+        } else {
+            rakNetDeserializers.add(index, rakNetDeserializer)
+        }
+    }
+
+    fun removeDeserializer(rakNetDeserializer: RakNetDeserializer<out RakNetPacket>): BedrockServer {
+        rakNetDeserializers.remove(rakNetDeserializer)
         return this
     }
 

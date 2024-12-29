@@ -1,5 +1,6 @@
 package com.mucheng.mucute.bedrock.util
 
+import com.mucheng.mucute.bedrock.data.UInt24Le
 import io.ktor.network.sockets.*
 import io.ktor.utils.io.core.*
 import kotlinx.io.*
@@ -119,4 +120,12 @@ fun Source.readAddress(): InetSocketAddress {
             throw IllegalArgumentException()
         }
     }
+}
+
+fun Sink.writeUInt24Le(value: UInt24Le) {
+    writeByteBuffer(ByteBuffer.wrap(value.toByteArray()))
+}
+
+fun Source.readUInt24Le(): UInt24Le {
+    return UInt24Le(readByteArray(3))
 }

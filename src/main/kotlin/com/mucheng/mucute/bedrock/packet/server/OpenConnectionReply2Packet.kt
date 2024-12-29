@@ -1,7 +1,7 @@
 package com.mucheng.mucute.bedrock.packet.server
 
-import com.mucheng.mucute.bedrock.packet.BedrockPacket
-import com.mucheng.mucute.bedrock.packet.Deserializer
+import com.mucheng.mucute.bedrock.packet.RakNetPacket
+import com.mucheng.mucute.bedrock.serialization.RakNetDeserializer
 import com.mucheng.mucute.bedrock.util.*
 import io.ktor.network.sockets.*
 import io.ktor.utils.io.core.*
@@ -13,9 +13,11 @@ data class OpenConnectionReply2Packet(
     val clientAddress: InetSocketAddress,
     val MTU: Int,
     val encryptionEnabled: Boolean
-) : BedrockPacket(OPEN_CONNECTION_REPLY_2) {
+) : RakNetPacket() {
 
-    companion object : Deserializer<OpenConnectionReply2Packet> {
+    override val packetId = OPEN_CONNECTION_REPLY_2
+
+    companion object Deserializer : RakNetDeserializer<OpenConnectionReply2Packet> {
 
         @Suppress("LocalVariableName")
         override fun fromSource(source: Source) = with(source) {
@@ -23,7 +25,7 @@ data class OpenConnectionReply2Packet(
             checkMagic()
             val serverGUID = readLong()
             val clientAddress = readAddress()
-            val MTU = readShort() - 46
+            val MTU = readShort().toInt()
             val encryptionEnabled = readBoolean()
             OpenConnectionReply2Packet(serverGUID, clientAddress, MTU, encryptionEnabled)
         }
@@ -35,7 +37,7 @@ data class OpenConnectionReply2Packet(
         writeMagic()
         writeLong(serverGUID)
         writeAddress(clientAddress)
-        writeShort((MTU + 46).toShort())
+        writeShort(MTU.toShort())
         writeBoolean(encryptionEnabled)
     }
 

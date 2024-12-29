@@ -1,4 +1,4 @@
-package com.mucheng.mucute.bedrock.packet.server
+package com.mucheng.mucute.bedrock
 
 import kotlin.random.Random
 
